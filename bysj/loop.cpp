@@ -1,7 +1,6 @@
 #include <stdio.h>
+#include <tchar.h>
 #include <WinSock2.h>
-
-#include <atlimage.h>
 
 #include "macros.h"
 #include "motor.h"
@@ -10,39 +9,40 @@
 extern "C"{
 #include "jpeglib.h"
 };
-//#pragma comment(lib,"jpeg-static")
+
 #pragma comment(lib, "libjpeg")
 
 
-
-
-
 void dispatch(char *buff) {
-
 	char cmd = buff[0],
 		value = buff[1];
 
 	switch(cmd) {
 		case COMMAND_FORWARD:
 			forwardFlag = value;
-			if (forwardFlag)
+			if (value)
 				keybd_event('W', 0, 0, 0);
 			else
 				keybd_event('W', 0, KEYEVENTF_KEYUP, 0);
 		
-			printf("forward\n");
+			if (value)
+				printf("forward\n");
 			break;
 
 		case COMMAND_BACK:
 			backFlag = value;
+			if (value)
+				keybd_event('S', 0, 0, 0);
+			else
+				keybd_event('S', 0, KEYEVENTF_KEYUP, 0);
 
-
-			printf("back\n");
+			if (value)
+				printf("back\n");
 			break;
 
 		case COMMAND_LEFT:
 			leftFlag = value;
-			if (leftFlag)
+			if (value)
 				keybd_event('A', 0, 0, 0);
 			else
 				keybd_event('A', 0, KEYEVENTF_KEYUP, 0);
@@ -58,7 +58,7 @@ void dispatch(char *buff) {
 		
 		case COMMAND_RIGHT:
 			rightFlag = value;
-			if (rightFlag)
+			if (value)
 				keybd_event('D', 0, 0, 0);
 			else
 				keybd_event('D', 0, KEYEVENTF_KEYUP, 0);
@@ -178,10 +178,7 @@ void save_jpeg_to_file(int width, int height, int bitCount, unsigned char *destB
 	jpeg_finish_compress(&cinfo);
 	jpeg_destroy_compress(&cinfo);
 
-	//free(destBuf);
 	fclose(fp);
-
-
 }
 
 
@@ -189,7 +186,6 @@ void save_jpeg_to_file(int width, int height, int bitCount, unsigned char *destB
 
 void save_jpeg_to_mem(int width, int height, int bitCount, unsigned char *bitmap, 
 					  unsigned char **outBuf, unsigned long *outSize) {
-
 
 	int depth = bitCount / 8;
 	struct jpeg_compress_struct cinfo;
@@ -259,7 +255,7 @@ void snap(unsigned char **outBuf, unsigned long *outSize)
 	::BitBlt(hMemDC, 0, 0, width, height, hDc, 0, 0, SRCCOPY);
 
 
-	
+#ifdef CHECK_BITMAP_SIZE 
 	printf("width:%d, height:%d, bitcount:%d, BIsize:%d, size:%d\n", pBmi->bmiHeader.biWidth, pBmi->bmiHeader.biHeight, 
 		pBmi->bmiHeader.biBitCount, pBmi->bmiHeader.biSize, pBmi->bmiHeader.biSizeImage);
 
@@ -270,7 +266,7 @@ void snap(unsigned char **outBuf, unsigned long *outSize)
 	printf("sizeof BITMAPINFO:%d\n", sizeof(BITMAPINFO));
 
 	printf("sizeof BITMAPFILEHEADER:%d\n", sizeof(BITMAPFILEHEADER));
-	
+#endif
 
 	int depth = bitCount / 8;
 	int bytesOfRow = (width*depth)%4==0 ? 
@@ -301,16 +297,11 @@ void snap(unsigned char **outBuf, unsigned long *outSize)
 
 	free(destBuf);
 
-/*
-	CImage img;
-	img.Attach(hBitmap);
-	img.Save(_T("temp.bmp"));
-*/
-	
-
 }
 
-void vedioLoop(SOCKET clientSocket) {
+DWORD vedioThread(LPVOID param) {
+	SOCKET clientSocket = (SOCKET) param;
+
 	char *outBuf;
 	unsigned long outSize;
 
@@ -337,6 +328,8 @@ void loop(SOCKET clientSocket) {
 	int nReadedBytes = 0,
 		nBytes;
 
+	//因为gta在一个按键UP之前，认为它是长按，就不许线程了
+	//运行线程，模拟按键
 	//motor_on();
 
 	while (1) {
