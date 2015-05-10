@@ -1,0 +1,15 @@
+#ifndef FIRNSAN_MACROS_H
+#define FIRNSAN_MACROS_H
+
+#define PACKET_LEN 3
+#define PACKET_FLAG 0x7f
+
+enum {
+	COMMAND_FORWARD = 1,
+	COMMAND_BACK,
+	COMMAND_LEFT,
+	COMMAND_RIGHT,
+	COMMAND_STOP
+};
+
+#endif
