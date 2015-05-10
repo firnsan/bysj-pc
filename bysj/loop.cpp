@@ -13,7 +13,9 @@ extern "C"{
 #pragma comment(lib, "libjpeg")
 
 
-void dispatch(char *buff) {
+DWORD vedio_thread(LPVOID);
+
+void dispatch(char *buff, SOCKET s) {
 	char cmd = buff[0],
 		value = buff[1];
 
@@ -67,6 +69,12 @@ void dispatch(char *buff) {
 				printf("right\n");
 			break;
 
+		case COMMAND_VEDIO:
+			if (value)
+				CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)vedio_thread, 
+				(LPVOID)s, 0, NULL);
+			if(value==1)
+				printf("vedio\n");
 	}
 }
 
@@ -299,7 +307,7 @@ void snap(unsigned char **outBuf, unsigned long *outSize)
 
 }
 
-DWORD vedioThread(LPVOID param) {
+DWORD vedio_thread(LPVOID param) {
 	SOCKET clientSocket = (SOCKET) param;
 
 	char *outBuf;
@@ -347,6 +355,6 @@ void loop(SOCKET clientSocket) {
 		nReadedBytes = 0;
 
 		if (buff[0] == PACKET_FLAG) //如果是合法的包
-			dispatch(&buff[1]);
+			dispatch(&buff[1], clientSocket);
 	}
 }
