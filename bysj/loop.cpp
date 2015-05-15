@@ -13,6 +13,8 @@ extern "C"{
 #pragma comment(lib, "libjpeg")
 
 
+bool quited = true;
+
 DWORD vedio_thread(LPVOID);
 
 void dispatch(char *buff, SOCKET s) {
@@ -315,7 +317,7 @@ DWORD vedio_thread(LPVOID param) {
 
 	int nBytesWrite = 0;
 	int nBytes;
-	while (1) {
+	while (!quited) {
 		snap((unsigned char**)&outBuf, &outSize);
 		char flag = PACKET_FLAG;
 		send(clientSocket, &flag, 1, 0);
@@ -328,6 +330,7 @@ DWORD vedio_thread(LPVOID param) {
 		free(outBuf);
 		Sleep(20);
 	}
+	return 0;
 }
 
 
@@ -340,9 +343,13 @@ void loop(SOCKET clientSocket) {
 	//运行线程，模拟按键
 	//motor_on();
 
+	quited = false;
+
 	while (1) {
 		nBytes = recv(clientSocket, buff+nReadedBytes, PACKET_LEN, 0);
 		if (nBytes == 0) { //对方关闭了连接
+			closesocket(clientSocket);
+			quited = true;
 			break;
 		}
 		nReadedBytes += nBytes;
