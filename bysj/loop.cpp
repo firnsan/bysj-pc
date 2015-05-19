@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <tchar.h>
 #include <WinSock2.h>
+#include <atlimage.h>
 
 #include "macros.h"
 #include "motor.h"
@@ -215,10 +216,12 @@ void save_jpeg_to_mem(int width, int height, int bitCount, unsigned char *bitmap
 	if (depth == 1)
 		cinfo.in_color_space = JCS_GRAYSCALE;
 	else
-		cinfo.in_color_space = JCS_RGB;
+		cinfo.in_color_space = JCS_RGB; //JCS_YCbCr的效果太差
 
 	jpeg_set_defaults(&cinfo);
-	jpeg_set_quality(&cinfo,40,TRUE);    //中间的值为压缩质量，越大质量越好
+	//中间的值为压缩质量，越大质量越好
+	//对于20，可以看到人工痕迹
+	jpeg_set_quality(&cinfo,30,TRUE);    
 	jpeg_start_compress(&cinfo,TRUE);
 
 	buffer=(*cinfo.mem->alloc_sarray)
@@ -258,7 +261,9 @@ void snap(unsigned char **outBuf, unsigned long *outSize)
 	static LPBITMAPINFO pBmi = constructBI(bitCount, width, height);
 	static HBITMAP hBitmap	= ::CreateDIBSection(hDc, pBmi, DIB_RGB_COLORS, &pBits, NULL, NULL);
 
+	static int frameId = 0; //帧id
 	
+	frameId++;
 	
 	::SelectObject(hMemDC, hBitmap);
 
@@ -278,6 +283,17 @@ void snap(unsigned char **outBuf, unsigned long *outSize)
 	printf("sizeof BITMAPFILEHEADER:%d\n", sizeof(BITMAPFILEHEADER));
 #endif
 
+
+#ifdef SAVE_BITMAP
+	/* 用 CImage转换到jpg不会出现颜色失真 */
+	CImage img;
+	TCHAR filename[64];
+	_stprintf_s(filename, _T("temp%d.jpg"), frameId);
+	img.Attach(hBitmap);
+	img.Save(filename);
+
+#endif
+
 	int depth = bitCount / 8;
 	int bytesOfRow = (width*depth)%4==0 ? 
 		width*depth : width*depth - (width*depth)%4 + 4; //对齐到4的倍数,这是BITMAP内存中的每行的字节数
@@ -295,8 +311,16 @@ void snap(unsigned char **outBuf, unsigned long *outSize)
 	unsigned char *srcCur = (unsigned char*)pBits;
 	unsigned char *destCur = destBuf;
 	for (int i=0; i<height; i++) {
-		for (int j=0; j<width*depth; j++) {
-				destCur[j] = srcCur[j];
+		for (int j=0; j<width*depth; j+=depth) {
+				if (depth == 1)
+					destCur[j] = srcCur[j];
+				if (depth == 3) {
+					//bitmap的颜色是以BGR存储的，要变成RGB
+					destCur[j] = srcCur[j+2];
+					destCur[j+1] = srcCur[j+1];
+					destCur[j+2] = srcCur[j];
+				}
+
 		}
 		srcCur += bytesOfRow;
 		destCur += width*depth;
