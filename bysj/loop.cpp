@@ -196,7 +196,8 @@ void save_jpeg_to_file(int width, int height, int bitCount, unsigned char *destB
 
 
 void save_jpeg_to_mem(int width, int height, int bitCount, unsigned char *bitmap, 
-					  unsigned char **outBuf, unsigned long *outSize) {
+					  unsigned char **outBuf, unsigned long *outSize) 
+{
 
 	int depth = bitCount / 8;
 	struct jpeg_compress_struct cinfo;
@@ -246,14 +247,40 @@ void save_jpeg_to_mem(int width, int height, int bitCount, unsigned char *bitmap
 
 
 
+//TCHAR *name = _T("Euro Truck Simulator 2");//无法获取画面
+TCHAR *gameName = _T("GTA: Vice City");
+HDC getGameDC()
+{
+	HWND hWnd = FindWindow(NULL, gameName);
+	if (hWnd)
+		return GetDC(hWnd);
+
+	return CreateDC(_T("DISPLAY"), NULL, NULL, NULL);
+}
+RECT getGameRect()
+{
+	RECT rc;
+	HWND hWnd = FindWindow(NULL, gameName);
+	if (hWnd) {
+		GetWindowRect(hWnd, &rc);
+	} else {
+		rc.left = 0;
+		rc.top = 0;
+		rc.right = ::GetSystemMetrics(SM_CXSCREEN);
+		rc.bottom = ::GetSystemMetrics(SM_CYSCREEN);
+	}
+
+	return rc;
+}
 
 
 void snap(unsigned char **outBuf, unsigned long *outSize) 
 {
-	static HDC hDc = CreateDC(_T("DISPLAY"), NULL, NULL, NULL);
+	static HDC hDc = getGameDC();
 	static HDC hMemDC = ::CreateCompatibleDC(hDc);
-	static int width = ::GetSystemMetrics(SM_CXSCREEN);
-	static int height = :: GetSystemMetrics(SM_CYSCREEN);
+	static RECT rc = getGameRect();
+	static int width = rc.right - rc.left;
+	static int height = rc.bottom - rc.top;
 
 	int bitCount = 24; //32位会莫名的崩溃
 
