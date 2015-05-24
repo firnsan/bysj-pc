@@ -12,29 +12,6 @@
 
 #define SERV_PORT 9898
 
-int MakeKeyLparam(int VirtualKey, int flag)
-{
-	UINT sCode;
-	//Firstbyte ; lparam 参数的 24-31位
-	UINT Firstbyte;
-	switch (flag)
-	{
-	case WM_KEYDOWN:    Firstbyte = 0;   break;
-	case WM_KEYUP:      Firstbyte = 0xC0;break;
-	case WM_CHAR:       Firstbyte = 0x20;break;
-	case WM_SYSKEYDOWN: Firstbyte = 0x20;break;
-	case WM_SYSKEYUP:   Firstbyte = 0xE0;break;
-	case WM_SYSCHAR:    Firstbyte = 0xE0;break;
-	}
-
-	// 16–23 Specifies the scan code. 
-	UINT iKey = MapVirtualKey(VirtualKey, 0);
-
-	// 0–15 Specifies the repeat count for the current message. 
-	sCode = (Firstbyte << 24) + (iKey << 16) + 20; 
-	return sCode;
-}
-
 
 void write_address_to_file(){
 	printf("%p %p %p %p\n", &forwardFlag, &backFlag, &leftFlag, &rightFlag);

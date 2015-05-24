@@ -222,7 +222,7 @@ void save_jpeg_to_mem(int width, int height, int bitCount, unsigned char *bitmap
 	jpeg_set_defaults(&cinfo);
 	//中间的值为压缩质量，越大质量越好
 	//对于20，可以看到人工痕迹
-	jpeg_set_quality(&cinfo,30,TRUE);    
+	jpeg_set_quality(&cinfo,20,TRUE);    
 	jpeg_start_compress(&cinfo,TRUE);
 
 	buffer=(*cinfo.mem->alloc_sarray)
